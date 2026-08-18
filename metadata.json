@@ -1,0 +1,6 @@
+{
+  "name": "StockPilot",
+  "description": "AI-Powered Warehouse Control Tower & Decision Intelligence Operating System",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
