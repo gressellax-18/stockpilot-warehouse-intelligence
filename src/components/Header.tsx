@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { AllocationStrategy } from '../types';
 
+import { DepartmentMenuBar } from './DepartmentMenuBar';
+
 export const Header: React.FC = () => {
   const {
     warehouses,
@@ -390,6 +392,8 @@ export const Header: React.FC = () => {
           </button>
         </div>
       </header>
+      {/* 🧭 Top Department Mega Menu / Category Quick Bar */}
+      <DepartmentMenuBar />
     </>
   );
 };
