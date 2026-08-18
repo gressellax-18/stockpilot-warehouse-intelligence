@@ -21,10 +21,12 @@ import {
   Layers,
 } from 'lucide-react';
 import { OrderStatus, PriorityLevel, OrderChannel } from '../types';
+import { getProductImage } from '../utils/productImages';
 
 export const OrdersView: React.FC = () => {
   const {
     orders,
+    exceptions,
     workers,
     activeWarehouseId,
     selectedOrderId,
@@ -37,11 +39,32 @@ export const OrdersView: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [channelFilter, setChannelFilter] = useState<string>('ALL');
 
+  const damagedOrderIds = new Set(
+    exceptions
+      .filter((e) => e.type === 'DAMAGED_ITEM' || e.type === 'QC_FAILED' || e.status === 'OPEN')
+      .map((e) => e.orderId)
+  );
+
   const filteredOrders = orders.filter((order) => {
     if (activeWarehouseId && order.assignedWarehouseId !== activeWarehouseId) return false;
     if (statusFilter !== 'ALL') {
       if (statusFilter === 'VIP_OUT_OF_STOCK') {
         if (!order.isOutOfStockVip) return false;
+      } else if (statusFilter === 'DAMAGED_ORDERS') {
+        if (!damagedOrderIds.has(order.id) && order.status !== 'EXCEPTION') return false;
+      } else if (statusFilter === 'ONGOING_PROCESS') {
+        const isOngoing =
+          order.status === 'ALLOCATED' ||
+          order.status === 'PICKING' ||
+          order.status === 'PARTIALLY_PICKED' ||
+          order.status === 'PACKING' ||
+          order.status === 'QC' ||
+          order.status === 'READY_TO_DISPATCH' ||
+          order.status === 'IN_TRANSIT' ||
+          order.status === 'DISPATCHED';
+        if (!isOngoing) return false;
+      } else if (statusFilter === 'ACCEPTED_ORDERS') {
+        if (order.status === 'CANCELLED') return false;
       } else if (order.status !== statusFilter) {
         return false;
       }
@@ -62,10 +85,10 @@ export const OrdersView: React.FC = () => {
     return true;
   });
 
-  const getChannelBadge = (ch?: OrderChannel) => {
+  const getChannelBadge = (ch?: OrderChannel | string) => {
     switch (ch) {
       case 'Amazon':
-        return { label: 'Amazon', bg: 'bg-amber-50 text-amber-900 border-amber-300', icon: '🛒' };
+        return { label: 'Amazon India', bg: 'bg-amber-50 text-amber-900 border-amber-300', icon: '🛒' };
       case 'Flipkart':
         return { label: 'Flipkart', bg: 'bg-blue-50 text-blue-800 border-blue-300', icon: '🛍️' };
       case 'Blinkit':
@@ -74,25 +97,39 @@ export const OrdersView: React.FC = () => {
         return { label: 'Zepto', bg: 'bg-purple-50 text-purple-900 border-purple-300', icon: '🚀' };
       case 'Swiggy Instamart':
         return { label: 'Swiggy', bg: 'bg-orange-50 text-orange-900 border-orange-300', icon: '🛵' };
-      case 'Enterprise EDI':
-        return { label: 'Enterprise EDI', bg: 'bg-slate-100 text-slate-900 border-slate-300', icon: '💼' };
-      case 'Direct Web Store':
-        return { label: 'Direct Web', bg: 'bg-emerald-50 text-emerald-900 border-emerald-300', icon: '🌐' };
-      case 'Myntra':
-        return { label: 'Myntra', bg: 'bg-pink-50 text-pink-900 border-pink-300', icon: '👗' };
-      case 'Nykaa':
-        return { label: 'Nykaa', bg: 'bg-rose-50 text-rose-900 border-rose-300', icon: '💄' };
+      case 'B2B Portal':
+        return { label: 'B2B Portal', bg: 'bg-slate-100 text-slate-900 border-slate-300', icon: '💼' };
+      case 'Shopify':
+        return { label: 'Shopify Store', bg: 'bg-emerald-50 text-emerald-900 border-emerald-300', icon: '🌐' };
+      case 'Tata Neu':
+        return { label: 'Tata Neu', bg: 'bg-purple-50 text-purple-900 border-purple-300', icon: '✨' };
       default:
         return { label: ch || 'Direct', bg: 'bg-gray-100 text-gray-800 border-gray-200', icon: '📦' };
     }
   };
 
+  const damagedOrdersCount = orders.filter((o) => damagedOrderIds.has(o.id) || o.status === 'EXCEPTION').length;
+  const ongoingOrdersCount = orders.filter(
+    (o) =>
+      o.status === 'ALLOCATED' ||
+      o.status === 'PICKING' ||
+      o.status === 'PARTIALLY_PICKED' ||
+      o.status === 'PACKING' ||
+      o.status === 'QC' ||
+      o.status === 'READY_TO_DISPATCH' ||
+      o.status === 'IN_TRANSIT' ||
+      o.status === 'DISPATCHED'
+  ).length;
+
   const stageCounts = {
     ALL: orders.length,
+    DAMAGED_ORDERS: damagedOrdersCount,
+    ONGOING_PROCESS: ongoingOrdersCount,
+    ACCEPTED_ORDERS: orders.length,
+    READY_TO_DISPATCH: orders.filter((o) => o.status === 'READY_TO_DISPATCH').length,
     ALLOCATED: orders.filter((o) => o.status === 'ALLOCATED').length,
     PICKING: orders.filter((o) => o.status === 'PICKING').length,
     PACKING: orders.filter((o) => o.status === 'PACKING').length,
-    READY_TO_DISPATCH: orders.filter((o) => o.status === 'READY_TO_DISPATCH').length,
     DISPATCHED: orders.filter((o) => o.status === 'DISPATCHED' || o.status === 'IN_TRANSIT').length,
     DELIVERED: orders.filter((o) => o.status === 'DELIVERED' || o.status === 'FEEDBACK_RECEIVED').length,
     VIP_OUT_OF_STOCK: orders.filter((o) => o.isOutOfStockVip).length,
@@ -128,15 +165,17 @@ export const OrdersView: React.FC = () => {
       {/* 🚀 Quick Stage Filter Bar with live counts */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
         {[
-          { id: 'ALL', label: 'All Orders', count: stageCounts.ALL },
-          { id: 'READY_TO_DISPATCH', label: 'Ready to Dispatch', count: stageCounts.READY_TO_DISPATCH, highlight: true },
+          { id: 'ALL', label: '📥 All Placed', count: stageCounts.ALL },
+          { id: 'DAMAGED_ORDERS', label: '🚨 Damaged Orders', count: stageCounts.DAMAGED_ORDERS, error: true },
+          { id: 'ACCEPTED_ORDERS', label: '🤝 Accepted & Owned', count: stageCounts.ACCEPTED_ORDERS, accepted: true },
+          { id: 'ONGOING_PROCESS', label: '⚡ Ongoing Waves', count: stageCounts.ONGOING_PROCESS, highlight: true },
+          { id: 'READY_TO_DISPATCH', label: 'Ready to Dispatch', count: stageCounts.READY_TO_DISPATCH },
           { id: 'ALLOCATED', label: 'Allocated', count: stageCounts.ALLOCATED },
           { id: 'PICKING', label: 'Picking', count: stageCounts.PICKING },
           { id: 'PACKING', label: 'Packing', count: stageCounts.PACKING },
           { id: 'DISPATCHED', label: 'In Transit / Dispatched', count: stageCounts.DISPATCHED },
           { id: 'DELIVERED', label: 'Delivered', count: stageCounts.DELIVERED },
-          { id: 'VIP_OUT_OF_STOCK', label: '👑 VIP Out-of-Stock Deficit', count: stageCounts.VIP_OUT_OF_STOCK, alert: true },
-          { id: 'EXCEPTION', label: 'Exceptions', count: stageCounts.EXCEPTION, error: true },
+          { id: 'VIP_OUT_OF_STOCK', label: '👑 VIP Deficit', count: stageCounts.VIP_OUT_OF_STOCK, alert: true },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -144,10 +183,14 @@ export const OrdersView: React.FC = () => {
             className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition flex items-center gap-1.5 border ${
               statusFilter === tab.id
                 ? 'bg-[#12372A] text-white border-[#12372A] shadow-xs'
+                : tab.error && tab.count > 0
+                ? 'bg-rose-50 text-rose-900 border-rose-300 hover:bg-rose-100'
+                : tab.accepted
+                ? 'bg-emerald-50 text-emerald-900 border-emerald-300 hover:bg-emerald-100'
+                : tab.highlight
+                ? 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
                 : tab.alert && tab.count > 0
                 ? 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
-                : tab.error && tab.count > 0
-                ? 'bg-red-50 text-red-900 border-red-200 hover:bg-red-100'
                 : 'bg-white text-[#202923]/80 border-[#E5EEE5] hover:bg-[#F7F5EF]'
             }`}
           >
@@ -300,18 +343,39 @@ export const OrdersView: React.FC = () => {
 
                       {/* Line Items & Total */}
                       <td className="py-3 px-4 font-mono">
-                        {order.items.map((i, idx) => (
-                          <div key={idx} className="text-[#12372A]">
-                            <strong>{i.quantityRequired}×</strong> {i.sku}
-                            {i.quantityAllocated < i.quantityRequired && (
-                              <span className="text-[#F26B5B] text-[10px] ml-1 font-bold">
-                                ({i.quantityAllocated} alloc)
-                              </span>
-                            )}
+                        <div className="flex items-center gap-2">
+                          {order.items[0] && (
+                            <div className="w-8 h-8 rounded-lg bg-white border border-[#12372A]/10 overflow-hidden flex-shrink-0 relative shadow-2xs">
+                              <img
+                                src={getProductImage(order.items[0].sku, order.items[0].imageUrl)}
+                                alt={order.items[0].productName}
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          )}
+                          <div>
+                            {order.items.map((i, idx) => (
+                              <div key={idx} className="text-[#12372A] text-xs">
+                                <strong>{i.quantityRequired}×</strong> {i.sku}
+                                {i.quantityAllocated < i.quantityRequired ? (
+                                  <span className="text-[#F26B5B] text-[10px] ml-1 font-bold">
+                                    ({i.quantityAllocated}/{i.quantityRequired} alloc)
+                                  </span>
+                                ) : (
+                                  <span className="text-[#1E8E63] text-[10px] ml-1 font-bold">
+                                    ({i.quantityAllocated} alloc)
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                            <div className="text-[10px] text-[#1E8E63] font-bold mt-0.5">
+                              ₹{order.totalAmount.toLocaleString()}
+                            </div>
                           </div>
-                        ))}
-                        <div className="text-[10px] text-[#1E8E63] font-bold mt-0.5">
-                          ₹{order.totalAmount.toLocaleString()}
                         </div>
                       </td>
 

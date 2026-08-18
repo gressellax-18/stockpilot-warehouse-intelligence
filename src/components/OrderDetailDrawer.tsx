@@ -15,8 +15,10 @@ import {
   ArrowRight,
   ShieldCheck,
   MapPin,
+  Building2,
 } from 'lucide-react';
 import { OrderStatus } from '../types';
+import { getProductImage } from '../utils/productImages';
 
 export const OrderDetailDrawer: React.FC = () => {
   const {
@@ -127,22 +129,51 @@ export const OrderDetailDrawer: React.FC = () => {
           </div>
         </div>
 
-        {/* Items Breakdown */}
+        {/* Items Breakdown with Product Images */}
         <div className="space-y-2">
-          <h3 className="font-bold text-xs uppercase font-mono text-[#12372A]/70">Order Line Items</h3>
-          <div className="space-y-2">
-            {order.items.map((item, idx) => (
-              <div key={idx} className="p-3 bg-[#F7F5EF] rounded-xl border border-[#12372A]/10 flex justify-between items-center">
-                <div>
-                  <div className="font-bold text-xs text-[#12372A] font-mono">{item.sku}</div>
-                  <div className="text-[11px] text-[#202923]/70">{item.productName}</div>
+          <h3 className="font-bold text-xs uppercase font-mono text-[#12372A]/70">Order Line Items Manifest</h3>
+          <div className="space-y-2.5">
+            {order.items.map((item, idx) => {
+              const imgUrl = getProductImage(item.sku, item.imageUrl);
+              return (
+                <div
+                  key={idx}
+                  className="p-3 bg-[#F7F5EF] rounded-xl border border-[#12372A]/10 flex items-center gap-3.5"
+                >
+                  <div className="w-14 h-14 rounded-xl bg-white border border-[#12372A]/10 overflow-hidden flex-shrink-0 relative shadow-2xs">
+                    <img
+                      src={imgUrl}
+                      alt={item.productName}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-mono font-bold bg-[#12372A] text-white px-1.5 py-0.2 rounded">
+                        {item.sku}
+                      </span>
+                      <span className="text-[10px] font-mono font-bold text-[#1E8E63]">
+                        ₹{item.unitPrice.toLocaleString()}/u
+                      </span>
+                    </div>
+                    <div className="font-bold text-xs text-[#12372A] truncate mt-0.5">{item.productName}</div>
+                    <div className="flex items-center gap-3 text-[10px] font-mono text-[#202923]/70 mt-0.5">
+                      <span>Req: <strong>{item.quantityRequired}</strong></span>
+                      <span>Alloc: <strong className="text-[#1E8E63]">{item.quantityAllocated}</strong></span>
+                    </div>
+                  </div>
+
+                  <div className="text-right font-mono font-bold text-xs text-[#12372A] flex-shrink-0">
+                    ₹{(item.unitPrice * item.quantityRequired).toLocaleString()}
+                  </div>
                 </div>
-                <div className="text-right font-mono">
-                  <div className="font-bold text-xs text-[#12372A]">Qty: {item.quantityRequired} units</div>
-                  <div className="text-[10px] text-[#1E8E63]">Allocated: {item.quantityAllocated}</div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

@@ -46,6 +46,7 @@ export interface OrderItem {
   quantityPicked: number;
   quantityPacked: number;
   unitPrice: number;
+  imageUrl?: string;
 }
 
 export interface OrderStageLog {
@@ -117,6 +118,7 @@ export interface Product {
   reorderPoint: number;
   leadTimeDays: number;
   supplier: string;
+  imageUrl?: string;
 }
 
 export interface WarehouseInventory {
@@ -187,6 +189,13 @@ export interface Package {
   station: string;
   isPacked: boolean;
   packedAt?: string;
+  customPackageCode?: string;
+  destinationAddress?: string;
+  destinationCity?: string;
+  coverageType?: string;
+  coverageValue?: number;
+  coveragePolicyNumber?: string;
+  packageDimensions?: string;
 }
 
 export interface QualityCheck {
@@ -270,7 +279,8 @@ export interface DecisionLog {
     | 'EXCEPTION_REALLOCATION'
     | 'PRIORITY_OVERRIDE'
     | 'REPLENISHMENT_ORDER'
-    | 'CARRIER_SELECTION';
+    | 'CARRIER_SELECTION'
+    | 'OPTIMIZE_ROUTE';
   orderId: string;
   action: string;
   reason: string;
@@ -282,6 +292,15 @@ export interface DecisionLog {
   expectedImpact: string;
   timestamp: string;
   acceptedBy: 'AI_AUTO' | 'OPERATOR_OVERRIDE' | 'MANAGER_APPROVAL';
+  sku?: string;
+  productName?: string;
+  imageUrl?: string;
+  quantity?: number;
+  customerName?: string;
+  sourceWarehouse?: string;
+  destinationCity?: string;
+  locationCoordinates?: { lat: number; lng: number };
+  financialImpact?: string;
 }
 
 export interface FeedbackItem {
@@ -294,6 +313,15 @@ export interface FeedbackItem {
   submittedAt: string;
   impactOnAnalytics: string;
   actionableRecommendation?: string;
+  sku?: string;
+  productName?: string;
+  imageUrl?: string;
+  customerAvatar?: string;
+  verifiedPurchase?: boolean;
+  deliverySpeedHours?: number;
+  packagingCondition?: 'PRISTINE' | 'GOOD' | 'MINOR_WEAR' | 'DAMAGED';
+  managerReply?: string;
+  sentiment?: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE';
 }
 
 export interface ReorderRequest {

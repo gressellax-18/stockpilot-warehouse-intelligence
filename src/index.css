@@ -46,12 +46,79 @@
   background: #12372A60;
 }
 
+/* Unique HUD Animations & Radar Scan Effect */
 @keyframes pulse-subtle {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.85; transform: scale(1.02); }
+}
+
+@keyframes scanner-laser {
+  0% { top: 0%; opacity: 0.8; }
+  50% { top: 95%; opacity: 1; }
+  100% { top: 0%; opacity: 0.8; }
+}
+
+@keyframes route-flow {
+  0% { stroke-dashoffset: 40; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes radar-sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes wave-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
 }
 
 .animate-pulse-subtle {
   animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+.animate-laser {
+  animation: scanner-laser 1.8s ease-in-out infinite;
+}
+
+.animate-route-flow {
+  stroke-dasharray: 6 6;
+  animation: route-flow 1.2s linear infinite;
+}
+
+.animate-radar {
+  animation: radar-sweep 4s linear infinite;
+  transform-origin: center;
+}
+
+.animate-wave-bounce {
+  animation: wave-bounce 2s ease-in-out infinite;
+}
+
+/* Unique Glassmorphism & Cyber Logistics Card Gradients */
+.hud-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(18, 55, 42, 0.08);
+  box-shadow: 0 4px 20px -2px rgba(18, 55, 42, 0.05);
+}
+
+.hud-dark-card {
+  background: radial-gradient(circle at top left, #1a4a39 0%, #12372A 70%, #0d281e 100%);
+  border: 1px solid rgba(167, 212, 111, 0.2);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+}
+
+.blueprint-grid {
+  background-size: 24px 24px;
+  background-image: 
+    linear-gradient(to right, rgba(18, 55, 42, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(18, 55, 42, 0.05) 1px, transparent 1px);
+}
+
+.blueprint-dark-grid {
+  background-size: 20px 20px;
+  background-image: 
+    linear-gradient(to right, rgba(167, 212, 111, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(167, 212, 111, 0.08) 1px, transparent 1px);
+}

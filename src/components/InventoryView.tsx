@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
   Package,
 } from 'lucide-react';
+import { getProductImage } from '../utils/productImages';
 
 export const InventoryView: React.FC = () => {
   const {
@@ -180,9 +181,24 @@ export const InventoryView: React.FC = () => {
                 return (
                   <tr key={`${item.warehouseId}-${item.sku}`} className="hover:bg-[#F7F5EF]/60 transition">
                     <td className="py-3 px-4">
-                      <div className="font-bold text-[#12372A] font-mono">{item.sku}</div>
-                      <div className="text-[11px] text-[#202923]/70">{item.productName}</div>
-                      <div className="text-[10px] text-gray-500 font-mono">₹{product?.unitPrice.toLocaleString()}</div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white border border-[#12372A]/10 overflow-hidden flex-shrink-0 relative shadow-2xs">
+                          <img
+                            src={getProductImage(item.sku, product?.imageUrl)}
+                            alt={item.productName}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <div className="font-bold text-[#12372A] font-mono">{item.sku}</div>
+                          <div className="text-[11px] text-[#202923]/70">{item.productName}</div>
+                          <div className="text-[10px] text-gray-500 font-mono">₹{product?.unitPrice.toLocaleString()}</div>
+                        </div>
+                      </div>
                     </td>
 
                     <td className="py-3 px-4">

@@ -40,6 +40,7 @@ export const Sidebar: React.FC = () => {
 
   const navItems = [
     { id: 'command_center', label: 'Command Center', icon: LayoutDashboard, badge: criticalOrdersCount ? `${criticalOrdersCount} Critical` : null, badgeColor: 'bg-[#F26B5B] text-white font-black' },
+    { id: 'operations_flow', label: 'Flow & Damage Hub', icon: Activity, badge: openExceptionsCount ? `${openExceptionsCount} Issues` : null, badgeColor: 'bg-rose-600 text-white font-black' },
     { id: 'orders', label: 'Orders', icon: ShoppingCart, count: orders.length },
     { id: 'inventory', label: 'Inventory', icon: Boxes },
     { id: 'picking', label: 'Picking & Routes', icon: Compass },

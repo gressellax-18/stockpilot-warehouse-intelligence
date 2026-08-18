@@ -14,6 +14,7 @@ import {
   Send,
 } from 'lucide-react';
 import { Carrier } from '../types';
+import { getProductImage } from '../utils/productImages';
 
 export const ShipmentsView: React.FC = () => {
   const {
@@ -73,14 +74,29 @@ export const ShipmentsView: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {readyToDispatchOrders.map((ord) => (
               <div key={ord.id} className="bg-white p-4 rounded-xl border border-[#E5EEE5] space-y-3 shadow-xs">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="font-bold text-xs text-[#12372A]">Order #{ord.id}</div>
-                    <div className="text-[11px] text-[#202923]/70">{ord.customerName}</div>
-                    <div className="text-[10px] text-[#1E8E63] font-semibold">{ord.destinationCity}</div>
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-[#F7F5EF] border border-[#12372A]/10 overflow-hidden flex-shrink-0 relative shadow-2xs">
+                      <img
+                        src={getProductImage(ord.items[0]?.sku, ord.items[0]?.imageUrl)}
+                        alt={ord.items[0]?.productName || 'Order Product'}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <div className="font-bold text-xs text-[#12372A]">Order #{ord.id}</div>
+                      <div className="text-[11px] text-[#202923]/70">{ord.customerName}</div>
+                      <div className="text-[10px] text-[#1E8E63] font-semibold">
+                        {ord.destinationCity} · {ord.items[0]?.quantityRequired}× {ord.items[0]?.sku}
+                      </div>
+                    </div>
                   </div>
 
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#12372A] text-white">
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#12372A] text-white flex-shrink-0">
                     {ord.shippingMethod}
                   </span>
                 </div>
@@ -142,8 +158,16 @@ export const ShipmentsView: React.FC = () => {
                 {/* Top Info */}
                 <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#E5EEE5]">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#12372A] text-white flex items-center justify-center font-bold">
-                      <Truck className="w-5 h-5 text-[#A7D46F]" />
+                    <div className="w-11 h-11 rounded-xl bg-white border border-[#12372A]/10 overflow-hidden flex-shrink-0 relative shadow-2xs">
+                      <img
+                        src={getProductImage(relatedOrder?.items[0]?.sku, relatedOrder?.items[0]?.imageUrl)}
+                        alt={relatedOrder?.items[0]?.productName || 'Shipped Item'}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -154,7 +178,7 @@ export const ShipmentsView: React.FC = () => {
                         <span className="text-xs text-[#202923]/60 font-mono">Order #{shp.orderId}</span>
                       </div>
                       <div className="text-[11px] text-[#202923]/70 mt-0.5">
-                        {shp.originWarehouse} → <strong>{shp.destinationCity}</strong> ({relatedOrder?.customerName})
+                        {shp.originWarehouse} → <strong>{shp.destinationCity}</strong> ({relatedOrder?.customerName} · {relatedOrder?.items[0]?.productName})
                       </div>
                     </div>
                   </div>

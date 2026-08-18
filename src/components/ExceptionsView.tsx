@@ -12,6 +12,7 @@ import {
   XCircle,
   Truck,
 } from 'lucide-react';
+import { getProductImage } from '../utils/productImages';
 
 export const ExceptionsView: React.FC = () => {
   const { exceptions, resolveException, orders, setSelectedOrderId, setCurrentView } = useWarehouse();
@@ -97,10 +98,23 @@ export const ExceptionsView: React.FC = () => {
 
                 {/* Discrepancy Breakdown */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                  <div className="bg-[#F7F5EF] p-3.5 rounded-xl border border-[#12372A]/10 space-y-1">
-                    <div className="text-[10px] uppercase font-mono text-[#202923]/60 font-semibold">Product SKU</div>
-                    <div className="font-bold text-sm text-[#12372A] font-mono">{ex.sku}</div>
-                    <div className="text-[11px] text-[#202923]/70">{ex.productName}</div>
+                  <div className="bg-[#F7F5EF] p-3.5 rounded-xl border border-[#12372A]/10 flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-white border border-[#12372A]/10 overflow-hidden flex-shrink-0 relative shadow-2xs">
+                      <img
+                        src={getProductImage(ex.sku)}
+                        alt={ex.productName}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase font-mono text-[#202923]/60 font-semibold">Product SKU</div>
+                      <div className="font-bold text-sm text-[#12372A] font-mono">{ex.sku}</div>
+                      <div className="text-[11px] text-[#202923]/70">{ex.productName}</div>
+                    </div>
                   </div>
 
                   <div className="bg-[#F7F5EF] p-3.5 rounded-xl border border-[#12372A]/10 space-y-1">
@@ -164,7 +178,11 @@ export const ExceptionsView: React.FC = () => {
                       className="py-2 px-4 rounded-xl bg-[#1E8E63] hover:bg-[#1E8E63]/90 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition"
                     >
                       <Truck className="w-4 h-4 text-[#A7D46F]" />
-                      <span>Reallocate 1 Unit from Chennai C-12</span>
+                      <span>
+                        {ex.alternativeStockFound
+                          ? `Reallocate ${ex.missingOrDamagedCount} Unit${ex.missingOrDamagedCount > 1 ? 's' : ''} from ${ex.alternativeStockFound.warehouseName.split(' ')[0]} (${ex.alternativeStockFound.binLocation})`
+                          : `Reallocate ${ex.missingOrDamagedCount} Unit${ex.missingOrDamagedCount > 1 ? 's' : ''} from Alternative Hub`}
+                      </span>
                     </button>
                   </div>
                 </div>

@@ -14,6 +14,7 @@ import { SimulatorView } from './components/SimulatorView';
 import { CustomerFeedbackView } from './components/CustomerFeedbackView';
 import { WarehouseMapView } from './components/WarehouseMapView';
 import { DecisionLogView } from './components/DecisionLogView';
+import { OperationalStatusConsole } from './components/OperationalStatusConsole';
 import { OrderDetailDrawer } from './components/OrderDetailDrawer';
 import { NewOrderModal } from './components/NewOrderModal';
 import { PilotAiDrawer } from './components/PilotAiDrawer';
@@ -26,6 +27,22 @@ const MainContent: React.FC = () => {
     switch (currentView) {
       case 'command_center':
         return <CommandCenter />;
+      case 'operations_flow':
+        return (
+          <div className="space-y-6 pb-12">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-[#12372A] tracking-tight">
+                  Operations Flow & Damage Control Console
+                </h2>
+                <p className="text-xs text-[#202923]/70">
+                  Comprehensive separation of damaged product orders, multi-channel placed intake, authorized worker ownership, and active in-flight fulfillment pipelines.
+                </p>
+              </div>
+            </div>
+            <OperationalStatusConsole />
+          </div>
+        );
       case 'orders':
         return <OrdersView />;
       case 'inventory':

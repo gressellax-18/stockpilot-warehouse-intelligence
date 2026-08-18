@@ -38,7 +38,7 @@ import {
 } from '../data/initialData';
 import confetti from 'canvas-confetti';
 
-const STORAGE_KEY = 'stockpilot_control_tower_v2';
+const STORAGE_KEY = 'stockpilot_control_tower_v4';
 
 export const DEMO_STEPS: DemoStep[] = [
   {
