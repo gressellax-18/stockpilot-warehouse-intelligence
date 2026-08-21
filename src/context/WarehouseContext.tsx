@@ -318,6 +318,8 @@ interface WarehouseContextType {
     destinationCity: string;
     shippingMethod: ShippingMethod;
     preferredWarehouseId?: string;
+    itemCondition?: import('../types').ItemCondition;
+    conditionNotes?: string;
   }) => Order;
 
   acceptRecommendation: (orderId: string) => void;
@@ -334,6 +336,10 @@ interface WarehouseContextType {
   advanceShipmentStage: (shipmentId: string) => void;
   submitCustomerFeedback: (orderId: string, rating: number, tags: string[], comments: string) => void;
   createReorder: (sku: string, warehouseId: string, quantity: number) => void;
+  addNewProduct: (
+    product: Product,
+    initialDistribution?: { warehouseId: string; onHand: number; available: number; binLocation: string }[]
+  ) => void;
 
   // Simulator & Demo
   runDemoStep: (stepNumber: number) => void;
@@ -552,6 +558,8 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     destinationCity: string;
     shippingMethod: ShippingMethod;
     preferredWarehouseId?: string;
+    itemCondition?: import('../types').ItemCondition;
+    conditionNotes?: string;
   }): Order => {
     const product = products.find((p) => p.sku === data.sku) || products[0];
     const targetWhMatch = data.preferredWarehouseId
@@ -581,7 +589,15 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const slaHours = data.shippingMethod === 'SAME_DAY' ? 4 : data.shippingMethod === 'EXPRESS' ? 12 : 36;
     const slaDeadline = new Date(now.getTime() + slaHours * 60 * 60 * 1000).toISOString();
 
-    const orderItem = {
+    const skuInventories = inventory.filter((i) => i.sku === product.sku);
+    const totalOnHandAcrossHubs = skuInventories.reduce((acc, curr) => acc + curr.onHand, 0);
+    const totalAvailableAcrossHubs = skuInventories.reduce((acc, curr) => acc + curr.available, 0);
+    const totalDamagedAcrossHubs = skuInventories.reduce((acc, curr) => acc + (curr.damaged || 0), 0);
+
+    const condition: import('../types').ItemCondition = data.itemCondition || 'PRISTINE_GOOD';
+    const isDamagedItem = condition === 'DAMAGED_QUARANTINED';
+
+    const orderItem: import('../types').OrderItem = {
       sku: product.sku,
       productName: product.name,
       quantityRequired: data.quantity,
@@ -589,6 +605,11 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       quantityPicked: 0,
       quantityPacked: 0,
       unitPrice: product.unitPrice,
+      itemCondition: condition,
+      conditionNotes: data.conditionNotes || (isDamagedItem ? 'Flagged defect / Quarantined item' : 'Grade A+ Certified Undamaged Item'),
+      availableStockUnits: availableInWh,
+      totalWarehouseUnits: totalOnHandAcrossHubs,
+      damagedUnitsInWarehouse: totalDamagedAcrossHubs,
     };
 
     const newOrder: Order = {
@@ -609,17 +630,36 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       priorityScore: score,
       priorityLevel: level,
       priorityReasons: reasons,
-      status: allocatedQty > 0 ? 'ALLOCATED' : 'EXCEPTION',
+      status: isDamagedItem ? 'EXCEPTION' : (allocatedQty > 0 ? 'ALLOCATED' : 'EXCEPTION'),
       assignedWarehouseId: bestWarehouse.id,
       allocatedWarehouseName: bestWarehouse.name,
       isPartial,
       totalAmount: product.unitPrice * data.quantity,
-      notes: isPartial
-        ? `Partial allocation: ${allocatedQty}/${data.quantity} units assigned in ${bestWarehouse.city}. ${data.quantity - allocatedQty} backordered.`
-        : `100% full allocation in ${bestWarehouse.city}.`,
+      conditionAssessment: {
+        isAllGood: !isDamagedItem,
+        conditionSummary: isDamagedItem
+          ? 'Damaged / Quarantined Unit Ordered'
+          : condition === 'INSPECTED_GOOD'
+          ? 'Inspected & Certified Good'
+          : '100% Pristine Grade-A (Certified Undamaged)',
+        damagedItemCount: isDamagedItem ? data.quantity : 0,
+        goodItemCount: isDamagedItem ? 0 : data.quantity,
+        qualityGrade: isDamagedItem ? 'QUARANTINE' : condition === 'INSPECTED_GOOD' ? 'A' : 'A+',
+      },
+      stockAvailabilitySnapshot: {
+        totalAvailable: totalAvailableAcrossHubs,
+        totalOnHand: totalOnHandAcrossHubs,
+        totalDamaged: totalDamagedAcrossHubs,
+        warehouseCode: bestWarehouse.code,
+      },
+      notes: isDamagedItem
+        ? `Quarantine Alert: ${data.quantity} units ordered under quarantine defect inspection. Requires QA review.`
+        : isPartial
+        ? `Partial allocation: ${allocatedQty}/${data.quantity} units assigned in ${bestWarehouse.city} (Total Available across all hubs: ${totalAvailableAcrossHubs}). ${data.quantity - allocatedQty} backordered.`
+        : `100% full allocation in ${bestWarehouse.city}. (${totalAvailableAcrossHubs} available, ${totalDamagedAcrossHubs} damaged in quarantine).`,
       timeline: [
         { stage: 'NEW', label: 'Order Created & Received', startTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), completed: true, workerName: 'System Gateway' },
-        { stage: 'VALIDATED', label: 'Customer Account & Address Validated', startTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), completed: true, workerName: 'Rules Engine' },
+        { stage: 'VALIDATED', label: `Validated · Item Condition: ${isDamagedItem ? 'DAMAGED / QUARANTINE' : 'GOOD & PRISTINE'} (${totalAvailableAcrossHubs} in stock)`, startTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), completed: true, workerName: 'Rules Engine' },
         { stage: 'PRIORITIZED', label: `Priority Scored ${score}/100 (${level})`, startTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), completed: true, workerName: 'Priority Engine' },
         { stage: 'ALLOCATED', label: `Allocated ${allocatedQty} units in ${bestWarehouse.name}`, startTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), completed: true, workerName: 'Pilot Decision AI' },
         { stage: 'PICKING', label: 'Pending Picker Assignment', completed: false },
@@ -1448,6 +1488,109 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setDecisionLogs((prev) => [log, ...prev]);
   };
 
+  // Add Product to Department Catalog & Inventory System
+  const addNewProduct = (
+    newProd: Product,
+    initialDistribution?: { warehouseId: string; onHand: number; available: number; binLocation: string }[]
+  ) => {
+    setProducts((prev) => {
+      const existingIdx = prev.findIndex((p) => p.sku.toLowerCase() === newProd.sku.toLowerCase());
+      let updated: Product[];
+      if (existingIdx >= 0) {
+        updated = [...prev];
+        updated[existingIdx] = newProd;
+      } else {
+        updated = [newProd, ...prev];
+      }
+      
+      // Strict deduplication by SKU
+      const seen = new Set<string>();
+      const deduplicated = updated.filter((p) => {
+        if (!p || !p.sku) return false;
+        const key = p.sku.toUpperCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      localStorage.setItem(STORAGE_KEY + '_products', JSON.stringify(deduplicated));
+      return deduplicated;
+    });
+
+    // Populate inventory across warehouses
+    setInventory((prev) => {
+      let updatedInv = [...prev];
+      if (initialDistribution && initialDistribution.length > 0) {
+        initialDistribution.forEach((dist) => {
+          const existingInvIdx = updatedInv.findIndex(
+            (i) => i.sku.toUpperCase() === newProd.sku.toUpperCase() && i.warehouseId === dist.warehouseId
+          );
+          if (existingInvIdx >= 0) {
+            updatedInv[existingInvIdx] = {
+              ...updatedInv[existingInvIdx],
+              onHand: dist.onHand,
+              available: dist.available,
+              binLocation: dist.binLocation || updatedInv[existingInvIdx].binLocation,
+            };
+          } else {
+            updatedInv.push({
+              warehouseId: dist.warehouseId,
+              sku: newProd.sku.toUpperCase(),
+              onHand: dist.onHand,
+              reserved: 0,
+              available: dist.available,
+              picking: 0,
+              packed: 0,
+              damaged: 0,
+              missing: 0,
+              quarantine: 0,
+              incoming: 20,
+              binLocation: dist.binLocation || 'A-01',
+            });
+          }
+        });
+      } else {
+        warehouses.forEach((wh, idx) => {
+          const existingInvIdx = updatedInv.findIndex(
+            (i) => i.sku.toUpperCase() === newProd.sku.toUpperCase() && i.warehouseId === wh.id
+          );
+          if (existingInvIdx < 0) {
+            updatedInv.push({
+              warehouseId: wh.id,
+              sku: newProd.sku.toUpperCase(),
+              onHand: 25,
+              reserved: 0,
+              available: 25,
+              picking: 0,
+              packed: 0,
+              damaged: 0,
+              missing: 0,
+              quarantine: 0,
+              incoming: 30,
+              binLocation: `Z-0${idx + 1}`,
+            });
+          }
+        });
+      }
+      localStorage.setItem(STORAGE_KEY + '_inventory', JSON.stringify(updatedInv));
+      return updatedInv;
+    });
+
+    const log: DecisionLog = {
+      id: `DEC-${Math.floor(9000 + Math.random() * 1000)}`,
+      decisionType: 'REPLENISHMENT_ORDER',
+      orderId: newProd.sku,
+      action: `Enrolled Product [${newProd.sku}] ${newProd.name} to Catalog & Warehouses`,
+      reason: 'Product registered with multi-hub safety stock ledger and SKU mapping',
+      confidenceScore: 100,
+      alternativeOptions: [],
+      expectedImpact: 'Available across department catalog and inventory matrix immediately',
+      timestamp: new Date().toISOString(),
+      acceptedBy: 'MANAGER_APPROVAL',
+    };
+    setDecisionLogs((prev) => [log, ...prev]);
+  };
+
   // 15-Step Automated Demo Orchestrator
   const runDemoStep = useCallback((stepNumber: number) => {
     const step = DEMO_STEPS.find((s) => s.stepNumber === stepNumber);
@@ -1669,6 +1812,7 @@ export const WarehouseProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         advanceShipmentStage,
         submitCustomerFeedback,
         createReorder,
+        addNewProduct,
         runDemoStep,
         startDemo,
         nextDemoStep,

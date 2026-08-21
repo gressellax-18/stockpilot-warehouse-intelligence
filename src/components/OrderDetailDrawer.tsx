@@ -129,53 +129,100 @@ export const OrderDetailDrawer: React.FC = () => {
           </div>
         </div>
 
-        {/* Items Breakdown with Product Images */}
+        {/* Items Breakdown with Product Images & Condition Information */}
         <div className="space-y-2">
-          <h3 className="font-bold text-xs uppercase font-mono text-[#12372A]/70">Order Line Items Manifest</h3>
+          <h3 className="font-bold text-xs uppercase font-mono text-[#12372A]/70">Order Line Items & Condition Manifest</h3>
           <div className="space-y-2.5">
             {order.items.map((item, idx) => {
               const imgUrl = getProductImage(item.sku, item.imageUrl);
+              const isDamaged = item.itemCondition === 'DAMAGED_QUARANTINED';
               return (
                 <div
                   key={idx}
-                  className="p-3 bg-[#F7F5EF] rounded-xl border border-[#12372A]/10 flex items-center gap-3.5"
+                  className="p-3 bg-[#F7F5EF] rounded-xl border border-[#12372A]/10 space-y-2"
                 >
-                  <div className="w-14 h-14 rounded-xl bg-white border border-[#12372A]/10 overflow-hidden flex-shrink-0 relative shadow-2xs">
-                    <img
-                      src={imgUrl}
-                      alt={item.productName}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = 'none';
-                      }}
-                    />
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-14 h-14 rounded-xl bg-white border border-[#12372A]/10 overflow-hidden flex-shrink-0 relative shadow-2xs">
+                      <img
+                        src={imgUrl}
+                        alt={item.productName}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-mono font-bold bg-[#12372A] text-white px-1.5 py-0.2 rounded">
+                          {item.sku}
+                        </span>
+                        <span className="text-[10px] font-mono font-bold text-[#1E8E63]">
+                          ₹{item.unitPrice.toLocaleString()}/u
+                        </span>
+                        <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded ${isDamaged ? 'bg-rose-200 text-rose-900' : 'bg-emerald-100 text-emerald-900'}`}>
+                          {isDamaged ? '⚠️ DAMAGED UNIT' : '🟢 100% CERTIFIED GOOD'}
+                        </span>
+                      </div>
+                      <div className="font-bold text-xs text-[#12372A] truncate mt-0.5">{item.productName}</div>
+                      <div className="flex items-center gap-3 text-[10px] font-mono text-[#202923]/70 mt-0.5">
+                        <span>Ordered: <strong>{item.quantityRequired} units</strong></span>
+                        <span>Allocated: <strong className="text-[#1E8E63]">{item.quantityAllocated} units</strong></span>
+                      </div>
+                    </div>
+
+                    <div className="text-right font-mono font-bold text-xs text-[#12372A] flex-shrink-0">
+                      ₹{(item.unitPrice * item.quantityRequired).toLocaleString()}
+                    </div>
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-mono font-bold bg-[#12372A] text-white px-1.5 py-0.2 rounded">
-                        {item.sku}
-                      </span>
-                      <span className="text-[10px] font-mono font-bold text-[#1E8E63]">
-                        ₹{item.unitPrice.toLocaleString()}/u
-                      </span>
+                  {/* Item Condition & Warehouse Stock Breakdown */}
+                  <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-gray-200/60 text-[10px]">
+                    <div className="p-1.5 rounded-lg bg-white border border-gray-200">
+                      <span className="text-gray-500 block">Item Physical Condition:</span>
+                      <strong className={isDamaged ? 'text-rose-700' : 'text-emerald-700'}>
+                        {isDamaged ? 'Defect Flagged / Damaged' : 'Pristine Good (Grade A+)'}
+                      </strong>
                     </div>
-                    <div className="font-bold text-xs text-[#12372A] truncate mt-0.5">{item.productName}</div>
-                    <div className="flex items-center gap-3 text-[10px] font-mono text-[#202923]/70 mt-0.5">
-                      <span>Req: <strong>{item.quantityRequired}</strong></span>
-                      <span>Alloc: <strong className="text-[#1E8E63]">{item.quantityAllocated}</strong></span>
+                    <div className="p-1.5 rounded-lg bg-white border border-gray-200">
+                      <span className="text-gray-500 block">Warehouse Availability:</span>
+                      <strong className="text-[#12372A]">
+                        {item.availableStockUnits !== undefined ? `${item.availableStockUnits} in hub stock` : `${order.stockAvailabilitySnapshot?.totalAvailable || 100} units total`}
+                      </strong>
                     </div>
-                  </div>
-
-                  <div className="text-right font-mono font-bold text-xs text-[#12372A] flex-shrink-0">
-                    ₹{(item.unitPrice * item.quantityRequired).toLocaleString()}
                   </div>
                 </div>
               );
             })}
           </div>
         </div>
+
+        {/* Global Condition & Stock Snapshot Card */}
+        {order.conditionAssessment && (
+          <div className="p-3 bg-white rounded-xl border border-emerald-300 shadow-2xs space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase font-mono text-emerald-900 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                QA Health & Stock Verification Snapshot
+              </span>
+              <span className="text-[9px] font-mono font-black px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">
+                Grade: {order.conditionAssessment.qualityGrade}
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-700">
+              {order.conditionAssessment.conditionSummary}
+            </p>
+            {order.stockAvailabilitySnapshot && (
+              <div className="flex items-center justify-between text-[10px] font-mono text-gray-500 pt-1 border-t border-gray-100">
+                <span>Total Vault Units: <strong>{order.stockAvailabilitySnapshot.totalOnHand}</strong></span>
+                <span className="text-emerald-700 font-bold">Avail: <strong>{order.stockAvailabilitySnapshot.totalAvailable}</strong></span>
+                <span className="text-rose-600">Damaged: <strong>{order.stockAvailabilitySnapshot.totalDamaged}</strong></span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Complete 11-Stage Operational Timeline */}
         <div className="space-y-3">

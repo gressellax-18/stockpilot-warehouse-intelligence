@@ -66,6 +66,8 @@ export const NewOrderModal: React.FC = () => {
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('SAME_DAY');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategoryBox, setActiveCategoryBox] = useState<string>('ALL');
+  const [itemCondition, setItemCondition] = useState<import('../types').ItemCondition>('PRISTINE_GOOD');
+  const [conditionNotes, setConditionNotes] = useState<string>('');
 
   // Live Timing String
   const [currentTimeStr, setCurrentTimeStr] = useState('');
@@ -115,9 +117,12 @@ export const NewOrderModal: React.FC = () => {
 
   const selectedProduct = products.find((p) => p.sku === selectedSku) || products[0];
 
-  // Check inventory availability across hubs for selected SKU
+  // Check inventory availability and condition stats across hubs for selected SKU
   const skuInventories = inventory.filter((inv) => inv.sku === selectedSku);
   const totalAvailableAcrossHubs = skuInventories.reduce((acc, curr) => acc + curr.available, 0);
+  const totalOnHandAcrossHubs = skuInventories.reduce((acc, curr) => acc + curr.onHand, 0);
+  const totalDamagedAcrossHubs = skuInventories.reduce((acc, curr) => acc + (curr.damaged || 0), 0);
+  const totalReservedAcrossHubs = skuInventories.reduce((acc, curr) => acc + (curr.reserved || 0), 0);
 
   // Calculate projected priority preview
   let projectedScore = 30;
@@ -242,6 +247,8 @@ export const NewOrderModal: React.FC = () => {
       destinationCity: fullDestinationAddress,
       shippingMethod,
       preferredWarehouseId: warehouseId || undefined,
+      itemCondition,
+      conditionNotes: conditionNotes || (itemCondition === 'DAMAGED_QUARANTINED' ? 'Flagged defect / Quarantined item ordered' : 'Grade A+ Certified Undamaged Item'),
     });
 
     setIsNewOrderModalOpen(false);
@@ -1122,40 +1129,52 @@ export const NewOrderModal: React.FC = () => {
           </div>
 
           {/* ------------------------------------------------------------- */}
-          {/* 4. SELECTED PRODUCT SUMMARY & REAL-TIME QUANTITY STEPPER */}
+          {/* 4. SELECTED PRODUCT SUMMARY, CONDITION AUDIT & STOCK LEDGER */}
           {/* ------------------------------------------------------------- */}
-          <div className="bg-[#F7F5EF] p-4 rounded-2xl border border-[#12372A]/15 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+          <div className="bg-[#F7F5EF] p-4 sm:p-5 rounded-2xl border border-[#12372A]/15 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
                 <img
                   src={SKU_IMAGE_MAP[selectedSku] || getProductImage(selectedSku)}
                   alt={selectedProduct.name}
-                  className="w-16 h-16 rounded-xl object-cover border-2 border-[#12372A]/20 shadow-sm flex-shrink-0"
+                  className="w-18 h-18 rounded-2xl object-cover border-2 border-[#12372A]/20 shadow-sm flex-shrink-0"
                   referrerPolicy="no-referrer"
                 />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[#12372A] text-white">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-mono font-black px-2.5 py-0.5 rounded bg-[#12372A] text-white">
                       {selectedProduct.sku}
                     </span>
-                    <span className="text-[10px] font-bold text-[#1E8E63]">
-                      ✓ {totalAvailableAcrossHubs} Units Available Across 6 Hubs
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300">
+                      ✓ {totalAvailableAcrossHubs} Units Available to Dispatch
                     </span>
+                    {totalDamagedAcrossHubs > 0 && (
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-900 border border-rose-300 animate-pulse">
+                        ⚠️ {totalDamagedAcrossHubs} Damaged Units Quarantined
+                      </span>
+                    )}
                   </div>
-                  <h4 className="font-black text-sm text-[#12372A] mt-0.5">{selectedProduct.name}</h4>
-                  <span className="text-xs font-mono text-gray-600">
-                    Unit Price: <strong>₹{selectedProduct.unitPrice.toLocaleString()}</strong> · Weight: <strong>{selectedProduct.weightKg} kg/unit</strong>
-                  </span>
+                  <h4 className="font-black text-base text-[#12372A]">{selectedProduct.name}</h4>
+                  <div className="text-xs font-mono text-gray-600 flex flex-wrap items-center gap-3">
+                    <span>Unit Price: <strong>₹{selectedProduct.unitPrice.toLocaleString()}</strong></span>
+                    <span>·</span>
+                    <span>Weight: <strong>{selectedProduct.weightKg} kg</strong></span>
+                    <span>·</span>
+                    <span>Category: <strong>{selectedProduct.category}</strong></span>
+                  </div>
                 </div>
               </div>
 
               {/* Quantity Stepper */}
-              <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-[#12372A]/15 self-start sm:self-center">
-                <span className="text-xs font-bold text-gray-600 px-1">Quantity:</span>
+              <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-[#12372A]/15 self-start sm:self-center shadow-2xs">
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase font-bold text-gray-500">Order Quantity</span>
+                  <span className="text-xs font-mono font-bold text-[#12372A]">Units</span>
+                </div>
                 <button
                   type="button"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center font-bold"
+                  className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center justify-center font-bold transition"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
@@ -1170,14 +1189,191 @@ export const NewOrderModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setQuantity(quantity + 1)}
-                  className="w-8 h-8 rounded-lg bg-[#12372A] hover:bg-[#1E8E63] text-white flex items-center justify-center font-bold"
+                  className="w-8 h-8 rounded-lg bg-[#12372A] hover:bg-[#1E8E63] text-white flex items-center justify-center font-bold transition"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
 
-            {/* Warehouse Allocation Preference */}
+            {/* PRODUCT CONDITION AUDIT & STATUS (Good vs Damaged Breakdown) */}
+            <div className="bg-white p-3.5 rounded-xl border border-[#12372A]/15 space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-gray-100 pb-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black uppercase tracking-wider text-[#12372A] flex items-center gap-1">
+                    🔍 Product Health & Condition Verification
+                  </span>
+                </div>
+                <span className="text-[11px] font-medium text-gray-500">
+                  Select item physical condition rating before dispatch ingestion:
+                </span>
+              </div>
+
+              {/* 3 Condition Selector Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setItemCondition('PRISTINE_GOOD')}
+                  className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                    itemCondition === 'PRISTINE_GOOD'
+                      ? 'bg-emerald-50/80 border-emerald-500 ring-2 ring-emerald-400 text-emerald-950'
+                      : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-emerald-50/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black flex items-center gap-1">
+                      🟢 100% Pristine Good
+                    </span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-200 text-emerald-900 font-mono">
+                      GRADE A+
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-gray-600 mt-1 leading-snug">
+                    Factory sealed, pristine packaging, 0 defects, verified undamaged.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setItemCondition('INSPECTED_GOOD')}
+                  className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                    itemCondition === 'INSPECTED_GOOD'
+                      ? 'bg-sky-50/80 border-sky-500 ring-2 ring-sky-400 text-sky-950'
+                      : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-sky-50/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black flex items-center gap-1">
+                      🛡️ Inspected & Certified Good
+                    </span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-sky-200 text-sky-900 font-mono">
+                      GRADE A
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-gray-600 mt-1 leading-snug">
+                    Lab optical QA scan passed, barcode verified, fully operational.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setItemCondition('DAMAGED_QUARANTINED')}
+                  className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+                    itemCondition === 'DAMAGED_QUARANTINED'
+                      ? 'bg-rose-50 border-rose-500 ring-2 ring-rose-400 text-rose-950'
+                      : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-rose-50/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-rose-800 flex items-center gap-1">
+                      ⚠️ Damaged / Quarantine
+                    </span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-200 text-rose-900 font-mono">
+                      FLAGGED
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-rose-700 mt-1 leading-snug">
+                    Flagged for cosmetic scuff/damage test. Triggers exception triage.
+                  </p>
+                </button>
+              </div>
+
+              {/* Condition Note Banner */}
+              {itemCondition === 'DAMAGED_QUARANTINED' ? (
+                <div className="p-2.5 rounded-lg bg-rose-100 border border-rose-300 text-rose-900 text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-700 flex-shrink-0" />
+                  <span>
+                    <strong>Warning:</strong> You are ordering a unit with flagged damage. The order will be placed into the QA Exception Queue for supervisor review.
+                  </span>
+                </div>
+              ) : (
+                <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <strong>Condition Confirmed:</strong> Item is certified <strong>GOOD & UNDAMAGED</strong>.
+                  </span>
+                  <span className="font-mono text-[11px] font-bold text-emerald-800">
+                    QA Pass Rate: 99.8%
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* LIVE STOCK & PRODUCT QUANTITY AVAILABILITY BREAKDOWN */}
+            <div className="bg-white p-3.5 rounded-xl border border-[#12372A]/15 space-y-3">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                <span className="text-xs font-black uppercase tracking-wider text-[#12372A] flex items-center gap-1.5">
+                  📦 Product Inventory Counts & Multi-Hub Ledger
+                </span>
+                <span className="text-[10px] font-mono font-bold text-gray-500">
+                  Real-Time Sync Across 6 National Nodes
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-[10px] font-bold text-gray-500 block uppercase">Total In Vaults</span>
+                  <span className="text-base font-black font-mono text-[#12372A]">
+                    {totalOnHandAcrossHubs}
+                  </span>
+                  <span className="text-[10px] text-gray-500 block">Total physical units</span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200">
+                  <span className="text-[10px] font-bold text-emerald-800 block uppercase">Available to Ship</span>
+                  <span className="text-base font-black font-mono text-emerald-700">
+                    {totalAvailableAcrossHubs}
+                  </span>
+                  <span className="text-[10px] text-emerald-700 block">Undamaged & unreserved</span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-rose-50/70 border border-rose-200">
+                  <span className="text-[10px] font-bold text-rose-800 block uppercase">Damaged / Quarantined</span>
+                  <span className="text-base font-black font-mono text-rose-700">
+                    {totalDamagedAcrossHubs}
+                  </span>
+                  <span className="text-[10px] text-rose-700 block">Isolated in QA bay</span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200">
+                  <span className="text-[10px] font-bold text-amber-800 block uppercase">Remaining Post-Order</span>
+                  <span className={`text-base font-black font-mono ${totalAvailableAcrossHubs >= quantity ? 'text-amber-800' : 'text-rose-700'}`}>
+                    {Math.max(0, totalAvailableAcrossHubs - quantity)}
+                  </span>
+                  <span className="text-[10px] text-amber-700 block">
+                    {totalAvailableAcrossHubs >= quantity ? 'Safe buffer' : '⚠️ Backorder required'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Per-Warehouse Node Breakdown Tags */}
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block">
+                  Per-Warehouse Distribution:
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                  {warehouses.map((wh) => {
+                    const inv = inventory.find((i) => i.warehouseId === wh.id && i.sku === selectedSku);
+                    const avail = inv?.available || 0;
+                    const damaged = inv?.damaged || 0;
+                    return (
+                      <div
+                        key={wh.id}
+                        className="p-1.5 rounded-lg bg-gray-50 border border-gray-200 text-[11px] flex items-center justify-between"
+                      >
+                        <span className="font-bold text-[#12372A] truncate">{wh.city}</span>
+                        <div className="flex items-center gap-1 font-mono text-[10px]">
+                          <span className="font-bold text-emerald-700">{avail} avail</span>
+                          {damaged > 0 && <span className="text-rose-600">({damaged} dmg)</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Warehouse Allocation Preference & Financials */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#12372A]/10 text-xs">
               <div className="space-y-1">
                 <label className="font-bold text-[#12372A]">Fulfillment Warehouse Source</label>
@@ -1191,7 +1387,7 @@ export const NewOrderModal: React.FC = () => {
                     const stockInWh = inventory.find((i) => i.warehouseId === wh.id && i.sku === selectedSku)?.available || 0;
                     return (
                       <option key={wh.id} value={wh.id}>
-                        {wh.city} ({wh.name}) — Stock: {stockInWh} units | {wh.capacityUtilization}% Load
+                        {wh.city} ({wh.name}) — Available: {stockInWh} units | {wh.capacityUtilization}% Load
                       </option>
                     );
                   })}

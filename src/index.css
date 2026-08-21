@@ -2,15 +2,20 @@
 
 @layer base {
   :root {
-    --bg-warm-ivory: #F7F5EF;
-    --forest-green: #12372A;
-    --emerald: #1E8E63;
-    --lime-accent: #A7D46F;
-    --coral: #F26B5B;
-    --amber: #F3B562;
-    --charcoal: #202923;
-    --soft-sage: #E5EEE5;
+    --bg-warm-ivory: #F2F6F4;
+    --forest-green: #071D16;
+    --emerald: #059669;
+    --lime-accent: #00F59B;
+    --neon-cyan: #06B6D4;
+    --coral: #EF4444;
+    --amber: #F59E0B;
+    --charcoal: #0F172A;
+    --soft-sage: #DCE7E1;
     --card-white: #FFFFFF;
+    --cyber-slate: #061510;
+    --condition-good: #10B981;
+    --condition-damaged: #F43F5E;
+    --cyber-glow: rgba(0, 245, 155, 0.25);
   }
 
   body {
@@ -36,14 +41,14 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #E5EEE5;
+  background: #E2EAE5;
 }
 ::-webkit-scrollbar-thumb {
-  background: #12372A30;
+  background: #071D1630;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #12372A60;
+  background: #00F59B80;
 }
 
 /* Unique HUD Animations & Radar Scan Effect */
@@ -73,6 +78,11 @@
   50% { transform: translateY(-4px); }
 }
 
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(0, 245, 155, 0.2); }
+  50% { box-shadow: 0 0 28px rgba(0, 245, 155, 0.5); }
+}
+
 .animate-pulse-subtle {
   animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
@@ -95,30 +105,47 @@
   animation: wave-bounce 2s ease-in-out infinite;
 }
 
+.animate-glow-pulse {
+  animation: glow-pulse 3s infinite ease-in-out;
+}
+
 /* Unique Glassmorphism & Cyber Logistics Card Gradients */
 .hud-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(18, 55, 42, 0.08);
-  box-shadow: 0 4px 20px -2px rgba(18, 55, 42, 0.05);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(7, 29, 22, 0.08);
+  box-shadow: 0 4px 20px -2px rgba(7, 29, 22, 0.04);
 }
 
 .hud-dark-card {
-  background: radial-gradient(circle at top left, #1a4a39 0%, #12372A 70%, #0d281e 100%);
-  border: 1px solid rgba(167, 212, 111, 0.2);
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+  background: radial-gradient(circle at top left, #0E2F23 0%, #071D16 70%, #030F0B 100%);
+  border: 1px solid rgba(0, 245, 155, 0.25);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.45);
 }
 
 .blueprint-grid {
   background-size: 24px 24px;
   background-image: 
-    linear-gradient(to right, rgba(18, 55, 42, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(18, 55, 42, 0.05) 1px, transparent 1px);
+    linear-gradient(to right, rgba(7, 29, 22, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(7, 29, 22, 0.04) 1px, transparent 1px);
 }
 
 .blueprint-dark-grid {
   background-size: 20px 20px;
   background-image: 
-    linear-gradient(to right, rgba(167, 212, 111, 0.08) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(167, 212, 111, 0.08) 1px, transparent 1px);
+    linear-gradient(to right, rgba(0, 245, 155, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 245, 155, 0.08) 1px, transparent 1px);
 }
+
+/* Custom Neon Glow Text & Badges */
+.text-neon-mint {
+  color: #00F59B;
+  text-shadow: 0 0 12px rgba(0, 245, 155, 0.4);
+}
+
+.badge-obsidian-mint {
+  background: linear-gradient(135deg, rgba(0, 245, 155, 0.12), rgba(5, 150, 105, 0.2));
+  border: 1px solid rgba(0, 245, 155, 0.35);
+  color: #00F59B;
+}
+

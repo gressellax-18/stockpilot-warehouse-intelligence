@@ -38,6 +38,8 @@ export type AllocationStrategy =
   | 'MINIMIZE_PARTIAL'
   | 'NEAREST_WAREHOUSE';
 
+export type ItemCondition = 'PRISTINE_GOOD' | 'INSPECTED_GOOD' | 'MINOR_DEFECT' | 'DAMAGED_QUARANTINED';
+
 export interface OrderItem {
   sku: string;
   productName: string;
@@ -47,6 +49,11 @@ export interface OrderItem {
   quantityPacked: number;
   unitPrice: number;
   imageUrl?: string;
+  itemCondition?: ItemCondition;
+  conditionNotes?: string;
+  availableStockUnits?: number;
+  totalWarehouseUnits?: number;
+  damagedUnitsInWarehouse?: number;
 }
 
 export interface OrderStageLog {
@@ -90,6 +97,19 @@ export interface Order {
   isOutOfStockVip?: boolean;
   stockDeficitUnits?: number;
   notes?: string;
+  conditionAssessment?: {
+    isAllGood: boolean;
+    conditionSummary: string;
+    damagedItemCount: number;
+    goodItemCount: number;
+    qualityGrade: 'A+' | 'A' | 'B' | 'QUARANTINE';
+  };
+  stockAvailabilitySnapshot?: {
+    totalAvailable: number;
+    totalOnHand: number;
+    totalDamaged: number;
+    warehouseCode: string;
+  };
 }
 
 export interface Warehouse {

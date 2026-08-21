@@ -372,8 +372,19 @@ export const OrdersView: React.FC = () => {
                                 )}
                               </div>
                             ))}
-                            <div className="text-[10px] text-[#1E8E63] font-bold mt-0.5">
-                              ₹{order.totalAmount.toLocaleString()}
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[10px] text-[#1E8E63] font-bold">
+                                ₹{order.totalAmount.toLocaleString()}
+                              </span>
+                              {order.conditionAssessment ? (
+                                <span className={`text-[9px] font-bold px-1 rounded ${order.conditionAssessment.isAllGood ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                  {order.conditionAssessment.isAllGood ? '🟢 Good' : '🔴 Damaged'}
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-bold px-1 rounded bg-emerald-100 text-emerald-800">
+                                  🟢 Good
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
